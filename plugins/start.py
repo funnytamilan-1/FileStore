@@ -23,9 +23,6 @@ async def fsub_ui(message,app,items):
     rows.append([InlineKeyboardButton("Check Subscription",callback_data="fsub:check")])
     await message.reply_text(app.messages.get("FSUB","Please join required channels."),reply_markup=InlineKeyboardMarkup(rows))
 
-def register(app):
-    pass
-
 @Client.on_message(filters.command("start") & filters.private)
 async def start(client,message):
     if not message.from_user: return
@@ -40,7 +37,7 @@ async def start(client,message):
         photo=client.messages.get("START_PHOTO")
         if photo: return await message.reply_photo(photo,caption=text,reply_markup=InlineKeyboardMarkup(rows))
         return await message.reply_text(text,reply_markup=InlineKeyboardMarkup(rows))
-    try: kind,cid,ids=client.payload_codec.decode(message.command[1])
+    try: _,cid,ids=client.payload_codec.decode(message.command[1])
     except ValueError: return await message.reply_text("Invalid or expired link.")
     if not await client.db_channels.allowed(cid): return await message.reply_text("Storage link is no longer active.")
     if client.fsub_enabled:
@@ -65,4 +62,3 @@ async def start(client,message):
                 try: await client.delete_messages(message.chat.id,mid)
                 except Exception: pass
         task=asyncio.create_task(cleanup([x.id for x in sent])); client._tasks.add(task); task.add_done_callback(client._tasks.discard)
-
