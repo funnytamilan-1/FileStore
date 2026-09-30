@@ -5,11 +5,11 @@ from config import LOGGER, MESSAGES, settings
 from helper.database import Database
 from helper.db_channels import Channels
 from helper.rate_limit import RateLimiter
+from helper.encoder import PayloadCodec
 
 class Bot(Client):
     def __init__(self):
-        super().__init__("filestore",api_id=settings.api_id,api_hash=settings.api_hash,
-                         bot_token=settings.bot_token,workers=settings.workers,plugins={"root":"plugins"})
+        super().__init__("filestore",api_id=settings.api_id,api_hash=settings.api_hash,bot_token=settings.bot_token,workers=settings.workers,plugins={"root":"plugins"})
         self.name="filestore"; self.LOGGER=LOGGER; self.owner=settings.owner_id
         self.admins=set(settings.admins)|{self.owner}; self.mongodb=Database(settings.database_url,settings.database_name)
         self.db=self.mongodb.db; self.db_channels=Channels(self.mongodb); self.primary_db_channel=settings.channel_id
@@ -22,6 +22,7 @@ class Bot(Client):
         self.messages=MESSAGES; self.reply_text=MESSAGES["REPLY"]; self.uptime=datetime.now()
         self.started=time.monotonic(); self.db_channel=None; self.username=None; self._tasks=set()
         self.limiter=RateLimiter(settings.rate_limit,settings.rate_window)
+        self.payload_codec=PayloadCodec(settings.payload_secret,settings.payload_ttl,settings.batch_max)
 
     async def initialize(self):
         await self.mongodb.connect(); await self.mongodb.ensure_indexes()
@@ -44,7 +45,7 @@ class Bot(Client):
     async def start(self):
         await super().start(); me=await self.get_me(); self.username=me.username; self.started=time.monotonic()
         await self._validate_storage_channels()
-        try: await self.send_message(self.owner,f"✅ {me.first_name} is online.")
+        try: await self.send_message(self.owner,f"Bot {me.first_name} is online.")
         except Exception: pass
 
     async def _validate_storage_channels(self):
@@ -59,6 +60,4 @@ class Bot(Client):
             except Exception as exc: self.LOGGER(__name__,self.name).warning("Storage %s unavailable: %s",cid,exc)
 
     async def stop(self,*args): await super().stop()
-
-    async def close_services(self):
-        await self.mongodb.close()
+    async def close_services(self): await self.mongodb.close()
