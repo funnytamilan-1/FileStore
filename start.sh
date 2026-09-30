@@ -1,2 +1,3 @@
-pip install -r requirements.txt --no-cache-dir
-python3 main.py
+#!/usr/bin/env bash
+set -euo pipefail
+exec python main.py

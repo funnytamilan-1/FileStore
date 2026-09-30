@@ -1,39 +1,15 @@
-
 import asyncio
-from bot import Bot, web_app
-from pyrogram import compose
-from config import *
+from bot import Bot
+from config import settings
+from web.server import create_server
 
 async def main():
-    app = []
+    bot=Bot(); await bot.initialize(); health=None
+    try:
+        await bot.start(); health=await create_server(bot,settings.port); await asyncio.Event().wait()
+    finally:
+        if health: await health.cleanup()
+        try: await bot.stop()
+        finally: await bot.close_services()
 
-    # Create bot instance using config.py values
-    app.append(
-        Bot(
-            SESSION,
-            WORKERS,
-            DB_CHANNEL,
-            FSUBS,
-            TOKEN,
-            ADMINS,
-            MESSAGES,
-            AUTO_DEL,
-            DB_URI,
-            DB_NAME,
-            API_ID,
-            API_HASH,
-            PROTECT,
-            DISABLE_BTN
-        )
-    )
-
-    await compose(app)
-
-
-async def runner():
-    await asyncio.gather(
-        main(),
-        web_app()
-    )
-
-asyncio.run(runner())
+if __name__=="__main__": asyncio.run(main())
